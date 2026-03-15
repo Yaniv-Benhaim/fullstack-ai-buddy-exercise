@@ -24,7 +24,6 @@ export function useNotifications() {
   return useQuery({
     queryKey: ["notifications"],
     queryFn: fetchNotifications,
-    refetchInterval: 10000, // Poll every 10s for new nudges
   });
 }
 
@@ -42,10 +41,6 @@ export function useUpdateProgress() {
     }) => updateProgress(id, { status, score }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["progress"] });
-      // Also refetch notifications since a nudge may be generated
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ["notifications"] });
-      }, 5000);
     },
   });
 }

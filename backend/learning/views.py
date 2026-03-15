@@ -8,10 +8,8 @@ from .serializers import (
     NotificationSerializer,
 )
 
-# ──────────────────────────────────────────────
-# Bridge #3 — uncomment the import below after
+# TODO (Step 1): Uncomment the import below after
 # implementing the Celery task in tasks.py
-# ──────────────────────────────────────────────
 # from .tasks import generate_ai_nudge
 
 
@@ -49,11 +47,8 @@ class UserProgressUpdateView(generics.UpdateAPIView):
             instance.completed_at = timezone.now()
             instance.save(update_fields=["completed_at"])
 
-        # ──────────────────────────────────────────────
-        # TODO (Bridge #3): Uncomment the lines below
-        # once you have implemented generate_ai_nudge
-        # in tasks.py and uncommented the import above.
-        # ──────────────────────────────────────────────
+        # TODO (Step 1): Uncomment the lines below once you have
+        # implemented generate_ai_nudge in tasks.py
         # if instance.status == "completed":
         #     generate_ai_nudge.delay(
         #         user_id=instance.user.id,
@@ -68,3 +63,8 @@ class NotificationListView(generics.ListAPIView):
 
     def get_queryset(self):
         return Notification.objects.filter(user=self.request.user)
+
+
+# TODO (Step 2): Add a real-time endpoint here (SSE or WebSocket)
+# to push new notifications to the frontend as they are created.
+# See INSTRUCTIONS.md Step 2 for details.

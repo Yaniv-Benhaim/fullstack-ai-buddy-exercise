@@ -1,4 +1,5 @@
 from django.contrib.auth.models import User
+from rest_framework.authentication import BaseAuthentication
 
 
 class AutoAuthMiddleware:
@@ -15,3 +16,13 @@ class AutoAuthMiddleware:
         if user:
             request.user = user
         return self.get_response(request)
+
+
+class AutoAuthDRF(BaseAuthentication):
+    """DRF authentication class that returns the user set by AutoAuthMiddleware."""
+
+    def authenticate(self, request):
+        user = getattr(request._request, "user", None)
+        if user and user.is_authenticated:
+            return (user, None)
+        return None

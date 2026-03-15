@@ -1,12 +1,10 @@
 /**
- * 🚧 BRIDGE #2 — See INSTRUCTIONS.md (Step 3) for details.
- *
- * Display AI-generated nudges to the user.
+ * Display AI-generated nudges to the user in real time.
  * Currently shows a static placeholder.
  */
 
 export default function NudgeWidget() {
-  // TODO: Implement this component — see INSTRUCTIONS.md Step 3
+  // TODO (Step 2): Implement this component — see INSTRUCTIONS.md Step 2
   return (
     <div className="fixed bottom-4 right-4 max-w-sm w-full bg-white border border-gray-200 rounded-xl shadow-lg p-4 opacity-60">
       <div className="flex items-start gap-3">

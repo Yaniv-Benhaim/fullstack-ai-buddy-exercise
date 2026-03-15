@@ -32,6 +32,10 @@ export default function ModuleCard({ progress }: { progress: UserProgress }) {
     update({ id: progress.id, status: "completed" });
   };
 
+  const handleUndo = () => {
+    update({ id: progress.id, status: "not_started" });
+  };
+
   return (
     <div className={`rounded-xl border border-gray-200 p-6 ${config.bg} transition-all hover:shadow-md`}>
       <div className="flex items-start justify-between mb-3">
@@ -50,7 +54,15 @@ export default function ModuleCard({ progress }: { progress: UserProgress }) {
         <span className={`text-xs font-medium ${config.color}`}>
           {config.label}
         </span>
-        {progress.status !== "completed" && (
+        {progress.status === "completed" ? (
+          <button
+            onClick={handleUndo}
+            disabled={isPending}
+            className="px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-300 disabled:opacity-50 transition-colors"
+          >
+            {isPending ? "Updating..." : "Mark Incomplete"}
+          </button>
+        ) : (
           <button
             onClick={handleComplete}
             disabled={isPending}

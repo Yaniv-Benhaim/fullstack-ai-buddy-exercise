@@ -4,27 +4,19 @@
 
 > *"As a Logistics Manager at Flying Cargo, I want to receive an AI-powered nudge after I finish a module that helps me hit my quarterly efficiency goals."*
 
-The app skeleton is functional — modules load, progress can be tracked. But the AI nudge pipeline is disconnected across three "broken bridges." Your job is to wire them up end-to-end.
+The app skeleton is functional — modules load, progress can be tracked. But the AI nudge pipeline is disconnected. Your job is to wire it up end-to-end.
 
 **Time target: ~45 minutes**
 
 ---
 
-## Step 1 — Implement the Celery task (Bridge #1)
+## Step 1 — Implement the AI nudge task and wire it up
 
 **File:** `backend/learning/tasks.py`
 
-The `generate_ai_nudge(user_id, module_id)` task is empty. Implement it to:
+The `generate_ai_nudge(user_id, module_id)` Celery task is empty. Implement it so that when a user completes a module, the LLM generates a personalized nudge and saves it as a notification.
 
-1. Fetch the user's profile and the completed module from the database
-2. Build a prompt that includes the module context, the user's skill gaps, and their quarterly goals
-3. Call the LLM and extract the response
-4. Save the response as a `Notification` so the frontend can display it
-
-**Where to look:**
-- `backend/learning/models.py` — the data model (UserProfile fields, Notification fields)
-- `backend/config/settings.py` — `OLLAMA_BASE_URL` setting
-- `backend/requirements.txt` — available packages (`openai`, `celery`, etc.)
+The trigger in `backend/learning/views.py` is commented out — uncomment it once your task is ready.
 
 **Ollama API reference:**
 
@@ -42,29 +34,31 @@ curl http://localhost:11434/v1/chat/completions \
 
 ---
 
-## Step 2 — Wire up the trigger (Bridge #3)
+## Step 2 — Display nudges in real time
 
-**File:** `backend/learning/views.py`
+**Files:** `frontend/src/components/NudgeWidget.tsx`, `backend/learning/views.py`
 
-In `UserProgressUpdateView`, the call to `generate_ai_nudge.delay()` is commented out. Uncomment it (and the import at the top of the file) so that completing a module triggers your task.
+The nudge widget currently shows a static placeholder. Make nudges appear in real time when the Celery task completes.
+
+This requires work on **both** backend and frontend — you'll need a way to push new notifications from the server to the browser.
+
+Choose your approach (SSE, WebSockets).
 
 ---
 
-## Step 3 — Display nudges in the UI (Bridge #2)
+## Step 3 — Handle errors gracefully
 
-**File:** `frontend/src/components/NudgeWidget.tsx`
+What happens if Ollama is slow or unavailable? Make sure the app handles this gracefully — the user should get appropriate feedback rather than a silent failure.
 
-The widget currently shows a static placeholder. Replace it with a real implementation that displays AI nudges from the backend.
+---
 
-**Choose a real-time strategy:**
-- **Polling** (simplest) — a `useNotifications()` hook already exists in `hooks/useQueries.ts`
-- **SSE** — add a server-sent events endpoint in Django and listen with `EventSource`
-- **WebSockets** — add Django Channels
+## Step 4 — Write DESIGN.md
 
-**Where to look:**
-- `frontend/src/types.ts` — the `Notification` type
-- `frontend/src/store/useStore.ts` — Zustand store with notifications state
-- `frontend/src/hooks/useQueries.ts` — existing TanStack Query hooks
+Create a short `DESIGN.md` (a few paragraphs is fine) covering:
+
+- Which real-time strategy you chose and why
+- One tradeoff of your approach
+- What you'd do differently with more time
 
 ---
 
@@ -94,4 +88,5 @@ The widget currently shows a static placeholder. Replace it with a real implemen
 - **Code quality** — Clean, readable, well-structured code
 - **Prompt engineering** — Is the LLM prompt effective and contextual?
 - **Frontend polish** — Good UX for displaying nudges
-- **Architecture decisions** — Sensible choices for real-time strategy
+- **Error handling** — Graceful behavior when things go wrong
+- **Architecture decisions** — Sensible choices and clear reasoning in DESIGN.md
