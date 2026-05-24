@@ -88,10 +88,10 @@ def generate_with_ollama(prompt):
             "stream": False,
             "options": {
                 "temperature": 0.5,
-                "num_predict": 120,
+                "num_predict": 60,
             },
         },
-        timeout=30,
+        timeout=10,
     )
     response.raise_for_status()
     return response.json()["response"].strip()
