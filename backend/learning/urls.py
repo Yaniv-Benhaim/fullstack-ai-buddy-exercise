@@ -14,4 +14,9 @@ urlpatterns = [
         views.NotificationListView.as_view(),
         name="notification-list",
     ),
+    path(
+        "notifications/stream/",
+        views.NotificationStreamView.as_view(),
+        name="notification-stream",
+    ),
 ]

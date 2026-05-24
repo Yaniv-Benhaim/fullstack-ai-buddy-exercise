@@ -1,21 +1,63 @@
-/**
- * Display AI-generated nudges to the user in real time.
- * Currently shows a static placeholder.
- */
+import { useEffect, useMemo, useState } from "react";
+import { Bot, WifiOff } from "lucide-react";
+import { useStore } from "../store/useStore";
+import type { Notification } from "../types";
 
 export default function NudgeWidget() {
-  // TODO (Step 2): Implement this component — see INSTRUCTIONS.md Step 2
+  const { notifications, addNotification } = useStore();
+  const [isConnected, setIsConnected] = useState(false);
+
+  useEffect(() => {
+    const source = new EventSource("/api/notifications/stream/");
+
+    source.onopen = () => {
+      setIsConnected(true);
+    };
+
+    source.addEventListener("notification", (event) => {
+      const notification = JSON.parse(event.data) as Notification;
+      addNotification(notification);
+    });
+
+    source.onerror = () => {
+      setIsConnected(false);
+    };
+
+    return () => {
+      source.close();
+    };
+  }, [addNotification]);
+
+  const latestNudge = useMemo(
+    () =>
+      notifications.find(
+        (notification) =>
+          notification.notification_type === "ai_nudge" ||
+          notification.notification_type === "system"
+      ),
+    [notifications]
+  );
+
   return (
-    <div className="fixed bottom-4 right-4 max-w-sm w-full bg-white border border-gray-200 rounded-xl shadow-lg p-4 opacity-60">
+    <div className="fixed bottom-4 right-4 max-w-sm w-[calc(100%-2rem)] bg-white border border-gray-200 rounded-xl shadow-lg p-4">
       <div className="flex items-start gap-3">
-        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-          <span className="text-blue-600 text-sm">AI</span>
+        <div className="w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+          <Bot className="w-5 h-5 text-blue-600" />
         </div>
-        <div>
-          <h4 className="font-medium text-gray-900 text-sm">AI Nudge</h4>
-          <p className="text-sm text-gray-500 mt-1">
-            Implement this component to show real AI-generated nudges here.
-            See INSTRUCTIONS.md for details.
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between gap-3">
+            <h4 className="font-medium text-gray-900 text-sm">AI Nudge</h4>
+            {!isConnected && (
+              <span className="inline-flex items-center gap-1 text-xs text-gray-400">
+                <WifiOff className="w-3 h-3" />
+                Reconnecting
+              </span>
+            )}
+          </div>
+          <p className="text-sm text-gray-600 mt-1">
+            {latestNudge
+              ? latestNudge.message
+              : "Complete a module to receive a contextual learning nudge."}
           </p>
         </div>
       </div>

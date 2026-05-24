@@ -1,3 +1,6 @@
+import json
+
+from django.http import StreamingHttpResponse
 from django.utils import timezone
 from rest_framework import generics
 from .models import Module, UserProgress, Notification
@@ -65,6 +68,44 @@ class NotificationListView(generics.ListAPIView):
         return Notification.objects.filter(user=self.request.user)
 
 
-# TODO (Step 2): Add a real-time endpoint here (SSE or WebSocket)
-# to push new notifications to the frontend as they are created.
-# See INSTRUCTIONS.md Step 2 for details.
+class NotificationStreamView(generics.GenericAPIView):
+    """Stream live notifications for the current user with Server-Sent Events."""
+
+    def get(self, request, *args, **kwargs):
+        from .tasks import get_redis_client, notification_channel
+
+        channel = notification_channel(request.user.id)
+
+        def event_stream():
+            client = get_redis_client()
+            pubsub = client.pubsub()
+            pubsub.subscribe(channel)
+
+            try:
+                yield ": connected\n\n"
+
+                while True:
+                    message = pubsub.get_message(
+                        ignore_subscribe_messages=True,
+                        timeout=15,
+                    )
+
+                    if message and message["type"] == "message":
+                        payload = message["data"]
+                        if isinstance(payload, bytes):
+                            payload = payload.decode("utf-8")
+
+                        json.loads(payload)
+                        yield f"event: notification\ndata: {payload}\n\n"
+                    else:
+                        yield ": heartbeat\n\n"
+            finally:
+                pubsub.close()
+
+        response = StreamingHttpResponse(
+            event_stream(),
+            content_type="text/event-stream",
+        )
+        response["Cache-Control"] = "no-cache"
+        response["X-Accel-Buffering"] = "no"
+        return response

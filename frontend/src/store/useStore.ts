@@ -12,8 +12,14 @@ export const useStore = create<StoreState>((set, get) => ({
   notifications: [],
   setNotifications: (notifications) => set({ notifications }),
   addNotification: (notification) =>
-    set((state) => ({
-      notifications: [notification, ...state.notifications],
-    })),
+    set((state) => {
+      if (state.notifications.some((item) => item.id === notification.id)) {
+        return state;
+      }
+
+      return {
+        notifications: [notification, ...state.notifications],
+      };
+    }),
   unreadCount: () => get().notifications.filter((n) => !n.is_read).length,
 }));
