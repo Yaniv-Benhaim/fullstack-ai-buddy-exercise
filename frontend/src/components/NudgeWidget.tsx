@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { Bot, WifiOff } from "lucide-react";
+import { Bot, WifiOff, X } from "lucide-react";
 import { useStore } from "../store/useStore";
 import type { Notification } from "../types";
 
 export default function NudgeWidget() {
   const { notifications, addNotification } = useStore();
   const [isConnected, setIsConnected] = useState(false);
+  const [isDismissed, setIsDismissed] = useState(false);
 
   useEffect(() => {
     const source = new EventSource("/api/notifications/stream/");
@@ -17,6 +18,7 @@ export default function NudgeWidget() {
     source.addEventListener("notification", (event) => {
       const notification = JSON.parse(event.data) as Notification;
       addNotification(notification);
+      setIsDismissed(false);
     });
 
     source.onerror = () => {
@@ -38,6 +40,10 @@ export default function NudgeWidget() {
     [notifications]
   );
 
+  if (isDismissed) {
+    return null;
+  }
+
   return (
     <div className="fixed bottom-4 right-4 max-w-sm w-[calc(100%-2rem)] bg-white border border-gray-200 rounded-xl shadow-lg p-4">
       <div className="flex items-start gap-3">
@@ -53,11 +59,19 @@ export default function NudgeWidget() {
                 Reconnecting
               </span>
             )}
+            <button
+              type="button"
+              onClick={() => setIsDismissed(true)}
+              className="p-1 rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+              aria-label="Close nudge"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
           <p className="text-sm text-gray-600 mt-1">
             {latestNudge
               ? latestNudge.message
-              : "Complete a module to receive a contextual learning nudge."}
+              : "Complete a module to receive a learning nudge."}
           </p>
         </div>
       </div>

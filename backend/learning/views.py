@@ -1,6 +1,7 @@
 import json
 
 from django.http import StreamingHttpResponse
+from django.views import View
 from django.utils import timezone
 from rest_framework import generics
 from .models import Module, UserProgress, Notification
@@ -68,7 +69,7 @@ class NotificationListView(generics.ListAPIView):
         return Notification.objects.filter(user=self.request.user)
 
 
-class NotificationStreamView(generics.GenericAPIView):
+class NotificationStreamView(View):
     """Stream live notifications for the current user with Server-Sent Events."""
 
     def get(self, request, *args, **kwargs):

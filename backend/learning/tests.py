@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from django.contrib.auth.models import User
 from django.test import TestCase
@@ -40,18 +40,12 @@ class GenerateAiNudgeTests(TestCase):
         )
 
     def test_successful_ai_nudge_generation_saves_notification_and_publishes(self):
-        completion = MagicMock()
-        completion.choices = [
-            MagicMock(
-                message=MagicMock(content="Keep momentum with Fuel Efficiency next.")
-            )
-        ]
-
-        with patch("learning.tasks.OpenAI") as openai_class, patch(
+        with patch(
+            "learning.tasks.generate_with_ollama",
+            return_value="Keep momentum with Fuel Efficiency next.",
+        ), patch(
             "learning.tasks.publish_notification"
         ) as publish_notification:
-            openai_class.return_value.chat.completions.create.return_value = completion
-
             notification_id = generate_ai_nudge(self.user.id, self.completed_module.id)
 
         notification = Notification.objects.get(id=notification_id)
@@ -77,12 +71,12 @@ class GenerateAiNudgeTests(TestCase):
         self.assertIn("under 80 words", prompt)
 
     def test_ollama_failure_creates_fallback_notification_and_still_publishes(self):
-        with patch("learning.tasks.OpenAI") as openai_class, patch(
+        with patch(
+            "learning.tasks.generate_with_ollama",
+            side_effect=RuntimeError("ollama unavailable"),
+        ), patch(
             "learning.tasks.publish_notification"
         ) as publish_notification, patch("learning.tasks.logger") as logger:
-            create_completion = openai_class.return_value.chat.completions.create
-            create_completion.side_effect = RuntimeError("ollama unavailable")
-
             notification_id = generate_ai_nudge(self.user.id, self.completed_module.id)
 
         notification = Notification.objects.get(id=notification_id)

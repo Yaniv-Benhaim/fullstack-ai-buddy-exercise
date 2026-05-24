@@ -5,6 +5,7 @@ interface StoreState {
   notifications: Notification[];
   setNotifications: (notifications: Notification[]) => void;
   addNotification: (notification: Notification) => void;
+  markAllRead: () => void;
   unreadCount: () => number;
 }
 
@@ -21,5 +22,12 @@ export const useStore = create<StoreState>((set, get) => ({
         notifications: [notification, ...state.notifications],
       };
     }),
+  markAllRead: () =>
+    set((state) => ({
+      notifications: state.notifications.map((notification) => ({
+        ...notification,
+        is_read: true,
+      })),
+    })),
   unreadCount: () => get().notifications.filter((n) => !n.is_read).length,
 }));

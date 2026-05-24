@@ -1,11 +1,11 @@
 import json
 import logging
 
+import httpx
 import redis
 from celery import shared_task
 from django.conf import settings
 from django.contrib.auth.models import User
-from openai import OpenAI
 
 from .models import Module, Notification, UserProgress
 from .serializers import NotificationSerializer
@@ -79,6 +79,24 @@ def create_fallback_notification(user, module):
     )
 
 
+def generate_with_ollama(prompt):
+    response = httpx.post(
+        f"{settings.OLLAMA_BASE_URL.rstrip('/')}/api/generate",
+        json={
+            "model": "tinyllama",
+            "prompt": prompt,
+            "stream": False,
+            "options": {
+                "temperature": 0.5,
+                "num_predict": 120,
+            },
+        },
+        timeout=30,
+    )
+    response.raise_for_status()
+    return response.json()["response"].strip()
+
+
 @shared_task
 def generate_ai_nudge(user_id: int, module_id: int):
     """
@@ -92,27 +110,7 @@ def generate_ai_nudge(user_id: int, module_id: int):
             UserProgress.objects.filter(user=user).select_related("module")
         )
         prompt = build_nudge_prompt(user, module, progress_records)
-        client = OpenAI(
-            base_url=f"{settings.OLLAMA_BASE_URL.rstrip('/')}/v1",
-            api_key="ollama",
-            timeout=20,
-        )
-        completion = client.chat.completions.create(
-            model="tinyllama",
-            messages=[
-                {
-                    "role": "system",
-                    "content": (
-                        "You write concise learning nudges for cargo operations "
-                        "training."
-                    ),
-                },
-                {"role": "user", "content": prompt},
-            ],
-            temperature=0.5,
-            max_tokens=120,
-        )
-        message = completion.choices[0].message.content.strip()
+        message = generate_with_ollama(prompt)
         notification = Notification.objects.create(
             user=user,
             message=message,
