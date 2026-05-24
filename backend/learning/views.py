@@ -7,10 +7,7 @@ from .serializers import (
     UserProgressUpdateSerializer,
     NotificationSerializer,
 )
-
-# TODO (Step 1): Uncomment the import below after
-# implementing the Celery task in tasks.py
-# from .tasks import generate_ai_nudge
+from .tasks import generate_ai_nudge
 
 
 class ModuleListView(generics.ListAPIView):
@@ -40,20 +37,23 @@ class UserProgressUpdateView(generics.UpdateAPIView):
         return UserProgress.objects.filter(user=self.request.user)
 
     def perform_update(self, serializer):
+        previous_status = serializer.instance.status
         instance = serializer.save()
+        became_completed = (
+            previous_status != UserProgress.Status.COMPLETED
+            and instance.status == UserProgress.Status.COMPLETED
+        )
 
         # Set completed_at timestamp when status changes to completed
-        if instance.status == "completed" and instance.completed_at is None:
+        if became_completed and instance.completed_at is None:
             instance.completed_at = timezone.now()
             instance.save(update_fields=["completed_at"])
 
-        # TODO (Step 1): Uncomment the lines below once you have
-        # implemented generate_ai_nudge in tasks.py
-        # if instance.status == "completed":
-        #     generate_ai_nudge.delay(
-        #         user_id=instance.user.id,
-        #         module_id=instance.module.id,
-        #     )
+        if became_completed:
+            generate_ai_nudge.delay(
+                user_id=instance.user.id,
+                module_id=instance.module.id,
+            )
 
 
 class NotificationListView(generics.ListAPIView):

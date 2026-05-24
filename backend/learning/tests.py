@@ -2,6 +2,8 @@ from unittest.mock import MagicMock, patch
 
 from django.contrib.auth.models import User
 from django.test import TestCase
+from django.urls import reverse
+from rest_framework.test import APIClient
 
 from .models import Module, Notification, UserProfile, UserProgress
 from .tasks import build_nudge_prompt, generate_ai_nudge
@@ -92,3 +94,52 @@ class GenerateAiNudgeTests(TestCase):
         self.assertTrue(notification.message)
         publish_notification.assert_called_once_with(notification)
         logger.exception.assert_called_once()
+
+
+class UserProgressCompletionTriggerTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.user = User.objects.create_user(username="learner")
+        self.client.force_authenticate(user=self.user)
+        self.module = Module.objects.create(
+            name="Route Optimization",
+            category="Operations",
+            description="Plan efficient routes across changing delivery constraints.",
+        )
+
+    def test_completion_transition_sets_completed_at_and_triggers_ai_nudge(self):
+        progress = UserProgress.objects.create(
+            user=self.user,
+            module=self.module,
+            status=UserProgress.Status.NOT_STARTED,
+        )
+
+        with patch("learning.views.generate_ai_nudge.delay") as delay:
+            response = self.client.patch(
+                reverse("progress-update", args=[progress.id]),
+                {"status": UserProgress.Status.COMPLETED},
+                format="json",
+            )
+
+        progress.refresh_from_db()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(progress.status, UserProgress.Status.COMPLETED)
+        self.assertIsNotNone(progress.completed_at)
+        delay.assert_called_once_with(user_id=self.user.id, module_id=self.module.id)
+
+    def test_repatching_completed_progress_does_not_trigger_ai_nudge(self):
+        progress = UserProgress.objects.create(
+            user=self.user,
+            module=self.module,
+            status=UserProgress.Status.COMPLETED,
+        )
+
+        with patch("learning.views.generate_ai_nudge.delay") as delay:
+            response = self.client.patch(
+                reverse("progress-update", args=[progress.id]),
+                {"status": UserProgress.Status.COMPLETED},
+                format="json",
+            )
+
+        self.assertEqual(response.status_code, 200)
+        delay.assert_not_called()
