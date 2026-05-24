@@ -16,6 +16,8 @@ The app skeleton is functional — modules load, progress can be tracked. But th
 
 The `generate_ai_nudge(user_id, module_id)` Celery task is empty. Implement it so that when a user completes a module, the LLM generates a personalized nudge and saves it as a notification.
 
+The nudge should also reference the user's progression across their other courses — e.g. which modules they've completed, which are still in progress, and any obvious gaps — so the message feels contextual. Keep this simple: a short summary of progress is enough, no need for deep analytics.
+
 The trigger in `backend/learning/views.py` is commented out — uncomment it once your task is ready.
 
 **Ollama API reference:**
